@@ -1,0 +1,520 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Multi-tenant core entities
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  domain      String?  @unique
+  subdomain   String?  @unique
+  logo        String?
+  primaryColor String  @default("#f97316")
+  secondaryColor String @default("#fed7aa")
+  fontFamily  String   @default("Inter")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  restaurants Restaurant[]
+  users       User[]
+  orders      Order[]
+
+  @@map("tenants")
+}
+
+model Restaurant {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  address     String
+  phone       String?
+  email       String?
+  openingHours Json?
+  timezone    String   @default("America/Sao_Paulo")
+  currency    String   @default("BRL")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  menus      Menu[]
+  areas      Area[]
+  tables     Table[]
+  stations   Station[]
+  printers   Printer[]
+  orders     Order[]
+  users      User[]
+
+  @@map("restaurants")
+}
+
+// User management
+model User {
+  id          String   @id @default(cuid())
+  tenantId    String
+  restaurantId String?
+  email       String   @unique
+  name        String
+  phone       String?
+  role        UserRole @default(STAFF)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  STAFF
+  KITCHEN
+  WAITER
+}
+
+// Menu structure
+model Menu {
+  id           String   @id @default(cuid())
+  restaurantId String
+  name         String
+  description  String?
+  isActive     Boolean  @default(true)
+  validFrom    DateTime?
+  validTo      DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categories Category[]
+
+  @@map("menus")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  menuId      String
+  name        String
+  description String?
+  image       String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  menu  Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  items Item[]
+
+  @@map("categories")
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  categoryId  String
+  name        String
+  description String?
+  image       String?
+  basePrice   Decimal  @db.Decimal(10, 2)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  isAvailable Boolean  @default(true)
+  allergens   String[] @default([])
+  tags        String[] @default([])
+  calories    Int?
+  prepTime    Int?     // in minutes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  category    Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  variations  Variation[]
+  modifiers   Modifier[]
+  recipes     Recipe[]
+  orderItems  OrderItem[]
+
+  @@map("items")
+}
+
+model Variation {
+  id          String   @id @default(cuid())
+  itemId      String
+  name        String   // e.g., "Small", "Medium", "Large"
+  description String?
+  priceChange Decimal  @db.Decimal(10, 2) @default(0.00)
+  isDefault   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  item       Item        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@map("variations")
+}
+
+model Modifier {
+  id          String      @id @default(cuid())
+  itemId      String
+  name        String      // e.g., "Extra Cheese", "No Onions"
+  description String?
+  priceChange Decimal     @db.Decimal(10, 2) @default(0.00)
+  type        ModifierType @default(ADDON)
+  isRequired  Boolean     @default(false)
+  maxQuantity Int         @default(1)
+  sortOrder   Int         @default(0)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  item       Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  orderItems OrderItemModifier[]
+
+  @@map("modifiers")
+}
+
+enum ModifierType {
+  ADDON      // Extra cheese, bacon, etc.
+  REMOVAL    // No onions, no sauce, etc.
+  SUBSTITUTE // Change bread type, sauce, etc.
+}
+
+// Inventory management
+model Ingredient {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  unit        String      // kg, g, L, ml, units, etc.
+  costPerUnit Decimal     @db.Decimal(10, 4)
+  currentStock Decimal @db.Decimal(10, 2) @default(0)
+  minStock     Decimal @db.Decimal(10, 2) @default(0)
+  maxStock     Decimal? @db.Decimal(10, 2)
+  supplier    String?
+  category    String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  recipes     RecipeIngredient[]
+
+  @@map("ingredients")
+}
+
+model Recipe {
+  id          String   @id @default(cuid())
+  itemId      String
+  name        String
+  description String?
+  instructions String?
+  prepTime    Int?     // in minutes
+  cookTime    Int?     // in minutes
+  portionSize Decimal @db.Decimal(10, 2) @default(1)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  item        Item               @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  ingredients RecipeIngredient[]
+
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id           String @id @default(cuid())
+  recipeId     String
+  ingredientId String
+  quantity     Decimal @db.Decimal(10, 4)
+  unit         String
+  notes        String?
+
+  // Relations
+  recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, ingredientId])
+  @@map("recipe_ingredients")
+}
+
+// Table and area management
+model Area {
+  id           String   @id @default(cuid())
+  restaurantId String
+  name         String
+  description  String?
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  tables     Table[]
+
+  @@map("areas")
+}
+
+model Table {
+  id           String    @id @default(cuid())
+  restaurantId String
+  areaId       String?
+  number       String
+  capacity     Int       @default(4)
+  qrToken      String    @unique @default(cuid())
+  status       TableStatus @default(AVAILABLE)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  area       Area?      @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  orders     Order[]
+
+  @@unique([restaurantId, number])
+  @@map("tables")
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  CLEANING
+  OUT_OF_ORDER
+}
+
+// Order management
+model Order {
+  id           String      @id @default(cuid())
+  tenantId     String
+  restaurantId String
+  tableId      String?
+  orderNumber  String      @unique
+  customerName String?
+  customerPhone String?
+  customerEmail String?
+  status       OrderStatus @default(PLACED)
+  type         OrderType   @default(DINE_IN)
+  subtotal       Decimal @db.Decimal(10, 2) @default(0.00)
+  taxAmount      Decimal @db.Decimal(10, 2) @default(0.00)
+  discountAmount Decimal @db.Decimal(10, 2) @default(0.00)
+  total          Decimal @db.Decimal(10, 2) @default(0.00)
+  paymentMethod String?
+  paymentStatus PaymentStatus @default(PENDING)
+  notes        String?
+  estimatedTime Int?        // in minutes
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relations
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  table      Table?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  items      OrderItem[]
+  events     OrderEvent[]
+  payments   Payment[]
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  IN_PROGRESS
+  READY
+  DELIVERED
+  COMPLETED
+  CANCELED
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEOUT
+  DELIVERY
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  itemId      String
+  variationId String?
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  totalPrice  Decimal  @db.Decimal(10, 2)
+  notes       String?
+  status      OrderItemStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  order      Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item       Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  variation  Variation?          @relation(fields: [variationId], references: [id], onDelete: SetNull)
+  modifiers  OrderItemModifier[]
+
+  @@map("order_items")
+}
+
+enum OrderItemStatus {
+  PENDING
+  IN_PROGRESS
+  READY
+  DELIVERED
+  CANCELED
+}
+
+model OrderItemModifier {
+  id         String @id @default(cuid())
+  orderItemId String
+  modifierId String
+  quantity   Int    @default(1)
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+
+  // Relations
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  modifier  Modifier  @relation(fields: [modifierId], references: [id], onDelete: Cascade)
+
+  @@unique([orderItemId, modifierId])
+  @@map("order_item_modifiers")
+}
+
+model OrderEvent {
+  id        String    @id @default(cuid())
+  orderId   String
+  type      EventType
+  status    String?
+  message   String?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_events")
+}
+
+enum EventType {
+  ORDER_PLACED
+  ORDER_CONFIRMED
+  ORDER_STARTED
+  ORDER_READY
+  ORDER_DELIVERED
+  ORDER_COMPLETED
+  ORDER_CANCELED
+  PAYMENT_PROCESSED
+  KITCHEN_ASSIGNED
+  ITEM_READY
+}
+
+// Payment management
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String?       @unique
+  gateway       String?
+  metadata      Json?
+  processedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  CASH
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+  VOUCHER
+}
+
+// Kitchen operations
+model Station {
+  id           String   @id @default(cuid())
+  restaurantId String
+  name         String
+  description  String?
+  type         StationType @default(KITCHEN)
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  printers   Printer[]
+
+  @@map("stations")
+}
+
+enum StationType {
+  KITCHEN
+  BAR
+  DESSERT
+  GRILL
+  COLD
+  HOT
+  EXPEDITE
+}
+
+model Printer {
+  id           String      @id @default(cuid())
+  restaurantId String
+  stationId    String?
+  name         String
+  type         PrinterType @default(THERMAL)
+  connection   String      // IP address, USB path, etc.
+  template     String?
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relations
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  station    Station?    @relation(fields: [stationId], references: [id], onDelete: SetNull)
+
+  @@map("printers")
+}
+
+enum PrinterType {
+  THERMAL
+  LASER
+  INKJET
+  NETWORK
+}
