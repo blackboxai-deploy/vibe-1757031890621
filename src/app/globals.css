@@ -1,0 +1,305 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom restaurant styles */
+@layer components {
+  .restaurant-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow;
+  }
+
+  .menu-item-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200;
+  }
+
+  .order-status-green {
+    @apply bg-green-50 text-green-800 border-green-200;
+  }
+
+  .order-status-yellow {
+    @apply bg-yellow-50 text-yellow-800 border-yellow-200;
+  }
+
+  .order-status-red {
+    @apply bg-red-50 text-red-800 border-red-200;
+  }
+
+  .kitchen-timer {
+    @apply font-mono text-lg font-bold;
+  }
+
+  .kitchen-timer.green {
+    @apply text-green-600;
+  }
+
+  .kitchen-timer.yellow {
+    @apply text-yellow-600;
+  }
+
+  .kitchen-timer.red {
+    @apply text-red-600;
+  }
+
+  .cart-floating {
+    @apply fixed bottom-4 right-4 z-50 bg-primary text-primary-foreground rounded-full shadow-lg;
+  }
+
+  .qr-scanner {
+    @apply w-full max-w-sm mx-auto rounded-lg overflow-hidden shadow-lg;
+  }
+
+  .order-timeline {
+    @apply relative pl-8;
+  }
+
+  .order-timeline::before {
+    @apply absolute left-2 top-0 bottom-0 w-0.5 bg-gray-200;
+    content: "";
+  }
+
+  .order-timeline-item {
+    @apply relative mb-6;
+  }
+
+  .order-timeline-item::before {
+    @apply absolute -left-6 top-2 w-3 h-3 bg-primary rounded-full border-2 border-white shadow;
+    content: "";
+  }
+
+  .order-timeline-item.completed::before {
+    @apply bg-green-500;
+  }
+
+  .order-timeline-item.current::before {
+    @apply bg-blue-500 animate-pulse;
+  }
+
+  .table-qr {
+    @apply bg-white p-4 rounded-lg shadow-lg border border-gray-200;
+  }
+
+  .kitchen-display {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
+  .printer-status {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium rounded-full;
+  }
+
+  .printer-status.online {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .printer-status.offline {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .printer-status.busy {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  .animate-slide-in-bottom {
+    animation: slide-in-bottom 0.3s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+  }
+
+  .animate-bounce-gentle {
+    animation: bounce-gentle 2s infinite;
+  }
+}
+
+@keyframes slide-in-bottom {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bounce-gentle {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -5px, 0);
+  }
+  70% {
+    transform: translate3d(0, -3px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  body {
+    @apply text-black bg-white;
+  }
+
+  .kitchen-ticket {
+    @apply text-sm leading-tight;
+    font-family: 'Courier New', monospace;
+  }
+
+  .kitchen-ticket .header {
+    @apply text-center font-bold text-lg mb-2 pb-2 border-b border-black;
+  }
+
+  .kitchen-ticket .order-info {
+    @apply mb-3;
+  }
+
+  .kitchen-ticket .items {
+    @apply mb-3;
+  }
+
+  .kitchen-ticket .item {
+    @apply mb-1;
+  }
+
+  .kitchen-ticket .modifiers {
+    @apply ml-4 text-xs;
+  }
+
+  .kitchen-ticket .footer {
+    @apply text-center text-xs mt-4 pt-2 border-t border-black;
+  }
+}
+
+/* PWA and accessibility */
+.pwa-install-prompt {
+  @apply bg-primary text-primary-foreground p-4 rounded-lg shadow-lg;
+}
+
+.high-contrast {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 0 0% 20%;
+  --secondary-foreground: 0 0% 100%;
+}
+
+.focus-visible:focus {
+  @apply outline-none ring-2 ring-primary ring-offset-2;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Loading states */
+.skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+.loading-dots {
+  @apply inline-flex space-x-1;
+}
+
+.loading-dots div {
+  @apply w-1 h-1 bg-current rounded-full animate-bounce;
+}
+
+.loading-dots div:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.loading-dots div:nth-child(3) {
+  animation-delay: 0.2s;
+}
